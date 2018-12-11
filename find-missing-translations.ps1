@@ -4,6 +4,7 @@ $getTranslationWithIconRegex = "GetTranslationWithIcon\(`".+?`", ?`"(?<Translati
 $existingTranslationKeys = New-Object 'System.Collections.Generic.HashSet[string]'
 $translationKeys = New-Object 'System.Collections.Generic.HashSet[string]'
 
+# Load the file
 function findRegexInPath($regex, $filePath) {
     Get-Content $filePath | Select-String -Pattern $regex -AllMatches | Select-Object -Expand Matches | ForEach-Object {
         $match = $_.Groups["TranslationKey"].Value
@@ -25,11 +26,19 @@ Get-ChildItem -Recurse -Filter "*.aspx" | ForEach-Object {
     findRegexInPath $getTranslationWithIconRegex $filePath
 }
 
+if ($args.Count -eq 0) {
+    Write-Output "Please specify some resource files."
+    Write-Output "Usage: $($MyInvocation.ScriptName) [file1 [file2 [...]]]"
+    exit -1
+}
+
+# Load a collection of existing keys from the resource files specified on the command line.
 foreach ($filePath in $args) {
     Write-Output "Loading translation keys from $($filePath)..."
     loadExistingTranslationKeys $filePath
 }
 
+# Check whether the keys we've found exist in the resource files.
 $translationKeys | ForEach-Object {
     if (!$existingTranslationKeys.Contains($_)) {
         Write-Output $_
