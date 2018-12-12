@@ -8,7 +8,6 @@ $translationKeys = New-Object 'System.Collections.Generic.HashSet[string]'
 function findRegexInPath($regex, $filePath) {
     Get-Content $filePath | Select-String -Pattern $regex -AllMatches | Select-Object -Expand Matches | ForEach-Object {
         $match = $_.Groups["TranslationKey"].Value
-        #Write-Output "$($filePath): $($match)"
         $translationKeys.Add($match) | Out-Null
     }
 }
@@ -18,12 +17,6 @@ function loadExistingTranslationKeys($filePath) {
     $XmlDocument.root.data | ForEach-Object {
         $existingTranslationKeys.Add($_.name) | Out-Null
     }
-}
-
-Get-ChildItem -Recurse -Filter "*.aspx" | ForEach-Object {
-    $filePath = $_.FullName
-    findRegexInPath $getTranslationRegex $filePath
-    findRegexInPath $getTranslationWithIconRegex $filePath
 }
 
 if ($args.Count -eq 0) {
@@ -38,6 +31,14 @@ foreach ($filePath in $args) {
     loadExistingTranslationKeys $filePath
 }
 
+Get-ChildItem -Recurse -Filter "*.aspx" | ForEach-Object {
+    $filePath = $_.FullName
+    Write-Output "Searching for translation keys in $($filePath)"
+    findRegexInPath $getTranslationRegex $filePath
+    findRegexInPath $getTranslationWithIconRegex $filePath
+}
+
+Write-Host "The following translation keys seem to be missing:" -BackgroundColor Red -ForegroundColor White
 # Check whether the keys we've found exist in the resource files.
 $translationKeys | ForEach-Object {
     if (!$existingTranslationKeys.Contains($_)) {
