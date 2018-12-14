@@ -31,7 +31,7 @@ foreach ($filePath in $args) {
     loadExistingTranslationKeys $filePath
 }
 
-Get-ChildItem -Recurse -Filter "*.aspx" | ForEach-Object {
+Get-ChildItem -Recurse -Include "*.aspx", "*.ascx" | ForEach-Object {
     $filePath = $_.FullName
     Write-Output "Searching for translation keys in $($filePath)"
     findRegexInPath $getTranslationRegex $filePath
