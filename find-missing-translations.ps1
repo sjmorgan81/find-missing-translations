@@ -7,7 +7,7 @@ $existingTranslationKeys = New-Object 'System.Collections.Generic.HashSet[string
 $usedTranslationKeys = New-Object 'System.Collections.Generic.HashSet[string]'
 
 # Search for occurences of the specified regular expression in the specified file.
-function findRegexInPath($regex, $filePath) {
+function findMatchesInFile($regex, $filePath) {
     Get-Content $filePath | Select-String -Pattern $regex -AllMatches | Select-Object -Expand Matches | ForEach-Object {
         $match = $_.Groups["TranslationKey"].Value
         $usedTranslationKeys.Add($match) | Out-Null
@@ -38,8 +38,8 @@ foreach ($filePath in $args) {
 Get-ChildItem -Recurse -Include "*.aspx", "*.ascx" | ForEach-Object {
     $filePath = $_.FullName
     Write-Output "Searching for translation keys in $($filePath)"
-    findRegexInPath $getTranslationRegex $filePath
-    findRegexInPath $getTranslationWithIconRegex $filePath
+    findMatchesInFile $getTranslationRegex $filePath
+    findMatchesInFile $getTranslationWithIconRegex $filePath
 }
 
 Write-Host "The following translation keys seem to be missing:" -BackgroundColor Red -ForegroundColor White
