@@ -6,7 +6,7 @@ $getTranslationWithIconRegex = "GetTranslationWithIcon\(`".+?`", ?`"(?<Translati
 $existingTranslationKeys = New-Object 'System.Collections.Generic.HashSet[string]'
 $usedTranslationKeys = New-Object 'System.Collections.Generic.HashSet[string]'
 
-# Search for occurencdes of the specified regular expression in the specified file.
+# Search for occurences of the specified regular expression in the specified file.
 function findRegexInPath($regex, $filePath) {
     Get-Content $filePath | Select-String -Pattern $regex -AllMatches | Select-Object -Expand Matches | ForEach-Object {
         $match = $_.Groups["TranslationKey"].Value
