@@ -48,7 +48,7 @@ Get-ChildItem -Recurse -Include "*.aspx", "*.ascx" | ForEach-Object {
 }
 
 # Check whether the keys we've found exist in the resource files.
-$usedTranslationKeys.Keys | ForEach-Object {
+$usedTranslationKeys.Keys | Sort-Object | ForEach-Object {
     if (!$existingTranslationKeys.Contains($_)) {
         Write-Host -BackgroundColor White -ForegroundColor Black $_
         $usedTranslationKeys[$_] | ForEach-Object {
