@@ -4,13 +4,20 @@ $getTranslationRegex = "GetTranslation\(`"(?<TranslationKey>.+?)`"\)"
 $getTranslationWithIconRegex = "GetTranslationWithIcon\(`".+?`", ?`"(?<TranslationKey>.+?)`"\)"
 
 $existingTranslationKeys = New-Object 'System.Collections.Generic.HashSet[string]'
-$usedTranslationKeys = New-Object 'System.Collections.Generic.HashSet[string]'
+$usedTranslationKeys = @{}
+
+function addTranslationUsage($translationKey, $filename) {
+    if (-Not $usedTranslationKeys.ContainsKey($translationKey)) {
+        $usedTranslationKeys[$translationKey] = New-Object 'System.Collections.Generic.HashSet[string]'
+    }
+    $usedTranslationKeys[$translationKey].Add($filename)
+}
 
 # Search for occurences of the specified regular expression in the specified file.
 function findMatchesInFile($regex, $filePath) {
     Get-Content $filePath | Select-String -Pattern $regex -AllMatches | Select-Object -Expand Matches | ForEach-Object {
-        $match = $_.Groups["TranslationKey"].Value
-        $usedTranslationKeys.Add($match) | Out-Null
+        $translationKey = $_.Groups["TranslationKey"].Value
+        addTranslationUsage $translationKey $filePath | Out-Null
     }
 }
 
@@ -30,22 +37,22 @@ if ($args.Count -eq 0) {
 
 # Load a collection of existing keys from the resource files specified on the command line.
 foreach ($filePath in $args) {
-    Write-Output "Loading translation keys from $($filePath)..."
     loadExistingTranslationKeys $filePath
 }
 
 # Recursively search the current directory searching for files that make use of translations.
 Get-ChildItem -Recurse -Include "*.aspx", "*.ascx" | ForEach-Object {
     $filePath = $_.FullName
-    Write-Output "Searching for translation keys in $($filePath)"
     findMatchesInFile $getTranslationRegex $filePath
     findMatchesInFile $getTranslationWithIconRegex $filePath
 }
 
-Write-Host "The following translation keys seem to be missing:" -BackgroundColor Red -ForegroundColor White
 # Check whether the keys we've found exist in the resource files.
-$usedTranslationKeys | ForEach-Object {
+$usedTranslationKeys.Keys | ForEach-Object {
     if (!$existingTranslationKeys.Contains($_)) {
-        Write-Output $_
+        Write-Host -BackgroundColor White -ForegroundColor Black $_
+        $usedTranslationKeys[$_] | ForEach-Object {
+            Write-Host $_
+        }
     }
 }
