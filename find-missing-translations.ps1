@@ -1,58 +1,47 @@
-﻿# Traverses the current directory searching for files that make use of GetTranslation and GetTranslationWithIcon
+﻿$ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
 
-$getTranslationRegex = "GetTranslation\(`"(?<TranslationKey>.+?)`"\)"
-$getTranslationWithIconRegex = "GetTranslationWithIcon\(`".+?`", ?`"(?<TranslationKey>.+?)`"\)"
-
-$existingTranslationKeys = New-Object 'System.Collections.Generic.HashSet[string]'
-$usedTranslationKeys = @{}
-
-function addTranslationUsage($translationKey, $filename) {
-    if (-Not $usedTranslationKeys.ContainsKey($translationKey)) {
-        $usedTranslationKeys[$translationKey] = New-Object 'System.Collections.Generic.HashSet[string]'
-    }
-    $usedTranslationKeys[$translationKey].Add($filename)
-}
-
-# Search for occurences of the specified regular expression in the specified file.
-function findMatchesInFile($regex, $filePath) {
-    Get-Content $filePath | Select-String -Pattern $regex -AllMatches | Select-Object -Expand Matches | ForEach-Object {
-        $translationKey = $_.Groups["TranslationKey"].Value
-        addTranslationUsage $translationKey $filePath | Out-Null
-    }
-}
-
-# Load translation keys from the specified file.
-function loadExistingTranslationKeys($filePath) {
-    [xml]$XmlDocument = Get-Content $filePath
-    $XmlDocument.root.data | ForEach-Object {
-        $existingTranslationKeys.Add($_.name) | Out-Null
-    }
-}
-
-if ($args.Count -eq 0) {
+if ($args.Count -ne 2) {
     Write-Output "Please specify some resource files."
-    Write-Output "Usage: $($MyInvocation.ScriptName) [file1 [file2 [...]]]"
+    Write-Output "Usage: $($MyInvocation.ScriptName) file1 file2"
     exit -1
 }
 
-# Load a collection of existing keys from the resource files specified on the command line.
-foreach ($filePath in $args) {
-    loadExistingTranslationKeys $filePath
-}
+# Define the paths to the two .resx files
+$resxFile1 = $args[0]
+$resxFile2 = $args[1]
 
-# Recursively search the current directory searching for files that make use of translations.
-Get-ChildItem -Recurse -Include "*.aspx", "*.ascx" | ForEach-Object {
-    $filePath = $_.FullName
-    findMatchesInFile $getTranslationRegex $filePath
-    findMatchesInFile $getTranslationWithIconRegex $filePath
-}
+# Load the System.Windows.Forms assembly to access the ResXResourceSet class
+Add-Type -AssemblyName System.Windows.Forms
 
-# Check whether the keys we've found exist in the resource files.
-$usedTranslationKeys.Keys | Sort-Object | ForEach-Object {
-    if (!$existingTranslationKeys.Contains($_)) {
-        Write-Host -BackgroundColor White -ForegroundColor Black $_
-        $usedTranslationKeys[$_] | ForEach-Object {
-            Write-Host $_
-        }
+# Create ResXResourceSet objects for both files
+$resourceSet1 = New-Object System.Resources.ResXResourceSet -ArgumentList $resxFile1
+$resourceSet2 = New-Object System.Resources.ResXResourceSet -ArgumentList $resxFile2
+
+# Get all the keys from both resource sets
+$keys1 = $resourceSet1.GetEnumerator() | ForEach-Object { $_.Key }
+$keys2 = $resourceSet2.GetEnumerator() | ForEach-Object { $_.Key }
+
+foreach ($key in $keys1) {
+    $value1 = $resourceSet1.GetString($key)
+    $value2 = $resourceSet2.GetString($key)
+
+    if (-not $keys2.Contains($key)) {
+        Write-Host "MISSING: '$key' is missing from $resxFile2"
+    }
+    elseif ($value1 -eq $value2) {
+        Write-Host "IDENTICAL: '$key' has the same value in both files"
     }
 }
+
+foreach ($key in $keys2) {
+    $value1 = $resourceSet1.GetString($key)
+    $value2 = $resourceSet2.GetString($key)
+
+    if (-not $keys1.Contains($key)) {
+        Write-Host "MISSING: '$key' is missing from $resxFile1"
+    }
+}
+
+# Clean up the resource sets
+$resourceSet1.Close()
+$resourceSet2.Close()
