@@ -26,10 +26,10 @@ foreach ($key in $keys1) {
     $value2 = $resourceSet2.GetString($key)
 
     if (-not $keys2.Contains($key)) {
-        Write-Host "MISSING: '$key' is missing from $resxFile2"
+        Write-Host "MISSING: '$key' (""$value1"") is missing from $resxFile2"
     }
     elseif ($value1 -eq $value2) {
-        Write-Host "IDENTICAL: '$key' has the same value in both files"
+        Write-Host "IDENTICAL: '$key' (""$value1"") has the same value in both files"
     }
 }
 
@@ -38,7 +38,7 @@ foreach ($key in $keys2) {
     $value2 = $resourceSet2.GetString($key)
 
     if (-not $keys1.Contains($key)) {
-        Write-Host "MISSING: '$key' is missing from $resxFile1"
+        Write-Host "MISSING: '$key' (""$value2"") is missing from $resxFile1"
     }
 }
 
